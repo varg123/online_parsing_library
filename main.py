@@ -1,18 +1,41 @@
 import requests
 import os
+from pathvalidate import sanitize_filename
 
-HOME_DIR = os.path.dirname(os.path.abspath(__file__))
-BOOKS_DIR = os.path.join(HOME_DIR, 'books')
+
+def download_txt(url, filename, folder='books/'):
+    """Функция для скачивания текстовых файлов.
+    Args:
+        url (str): Cсылка на текст, который хочется скачать.
+        filename (str): Имя файла, с которым сохранять.
+        folder (str): Папка, куда сохранять.
+    Returns:
+        str: Путь до файла, куда сохранён текст.
+    """
+    cleaned_folder = sanitize_filename(folder)
+    cleaned_filename = sanitize_filename(filename)
+    if not os.path.exists(cleaned_folder):
+        os.makedirs(cleaned_folder)
+    responce = requests.get(url)
+    book_path = os.path.join(cleaned_folder, f'{cleaned_filename}.txt')
+    if 'html' not in responce.headers['Content-Type']:
+        with open(book_path, 'wb') as book:
+            book.write(responce.content)
+    return book_path
 
 
 def main():
-    os.makedirs(BOOKS_DIR, exist_ok=True)
-    for book_id in range(1, 11):
-        responce = requests.get(f'http://tululu.org/txt.php?id={book_id}')
-        book_path = os.path.join(BOOKS_DIR, f'{book_id}.txt')
-        if 'html' not in responce.headers['Content-Type']:
-            with open(book_path, 'wb') as book:
-                book.write(responce.content)
+    # Примеры использования
+    url = 'http://tululu.org/txt.php?id=1'
+
+    filepath = download_txt(url, 'Алиби')
+    print(filepath)  # Выведется books/Алиби.txt
+
+    filepath = download_txt(url, 'Али/би', folder='books/')
+    print(filepath)  # Выведется books/Алиби.txt
+
+    filepath = download_txt(url, 'Али\\би', folder='txt/')
+    print(filepath)  # Выведется txt/Алиби.txt
 
 
 if __name__ == '__main__':
